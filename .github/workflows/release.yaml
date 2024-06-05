@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      wrapper:
+        description: 'Wrapper version (1.0.0)'
+        required: true
+      vswhere:
+        description: 'VSWhere version (3.1.7)'
+        required: true
+      version:
+        description: 'Release version (3.1.7)'
+        required: true
+      publish:
+        description: 'Publish Type'
+        required: true
+        default: 'publish'
+        type: choice
+        options:
+        - none
+        - release
+        - publish
+
+jobs:
+  release:
+  
+    permissions:
+      contents: write
+      packages: write
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+    - uses: actions/checkout@v4
+
+    - uses: nuget/setup-nuget@v2
+      with:
+        nuget-version: '6.x'
+
+    - name: Insert Wrapper
+      run: |
+        wget https://github.com/demaconsulting/DotnetToolWrapper/releases/download/${{ github.event.inputs.wrapper }}/DotnetToolWrapper.zip
+        unzip -o DotnetToolWrapper.zip -d pack/tools/net6.0/any
+
+    - name: Insert VSWhere
+      run: |
+        wget https://github.com/microsoft/vswhere/releases/download/${{ github.event.inputs.vswhere }}/vswhere.exe -O pack/tools/net6.0/any/vswhere.exe
+
+    - name: Create Dotnet Tool
+      run: |
+        cd pack
+        nuget pack -Version ${{ github.event.inputs.version }}
+
+    - name: Create release
+      if: ${{ inputs.publish == 'release' || inputs.publish == 'publish' }}
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: pack/*.nupkg
+        generateReleaseNotes: true
+        tag: ${{ github.event.inputs.version }}
+
+    - name: Publish to Nuget
+      if: ${{ inputs.publish == 'publish' }}
+      run: >
+        dotnet nuget push
+        pack/*.nupkg
+        --source "https://api.nuget.org/v3/index.json"
+        --api-key "${{ secrets.DEMACONSULTINGNUGETKEY }}"
