@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
   
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
 
@@ -13,7 +13,7 @@ jobs:
 
       - uses: nuget/setup-nuget@v2
         with:
-          nuget-version: '6.x'
+          nuget-version: latest
 
       - name: Insert Wrapper
         run: |

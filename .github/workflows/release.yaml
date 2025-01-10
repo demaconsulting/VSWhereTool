@@ -29,15 +29,21 @@ jobs:
       contents: write
       packages: write
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     
     - uses: actions/checkout@v4
 
+    - name: Setup dotnet 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+
     - uses: nuget/setup-nuget@v2
       with:
-        nuget-version: '6.x'
+        nuget-version: latest
 
     - name: Insert Wrapper
       run: |
