@@ -1,0 +1,8 @@
+{
+  "win-x64": {
+    "program": "../../../win-x86/vswhere.exe"
+  },
+  "win-x86": {
+    "program": "../../../win-x86/vswhere.exe"
+  }
+}

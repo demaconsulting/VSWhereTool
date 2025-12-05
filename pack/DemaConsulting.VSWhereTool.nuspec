@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>DemaConsulting.VSWhereTool</id>
-        <version>0.0.0</version>
+        <version>$version$</version>
         <title>VSWhere Dotnet Tool</title>
         <authors>Dema Consulting</authors>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -22,5 +22,6 @@
         <file src="../README.md" target="docs/README.md" />
         <file src="../Icon.png" target="docs/Icon.png" />
         <file src="tools/**/*" target="tools" />
+        <file src="win-x86/**/*" target="win-x86" />
     </files>
 </package>
