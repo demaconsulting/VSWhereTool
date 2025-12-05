@@ -1,0 +1,74 @@
+on:
+  workflow_call:
+    inputs:
+      wrapper:
+        required: true
+        type: string
+      vswhere:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    
+    - uses: actions/checkout@v6
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: |
+          10.x
+
+    - name: Restore Tools
+      run: >
+        dotnet tool restore
+
+    - name: Insert Wrapper
+      shell: bash
+      run: |
+        wget https://github.com/demaconsulting/DotnetToolWrapper/releases/download/${{ inputs.wrapper }}/manifest.spdx.json
+        wget https://github.com/demaconsulting/DotnetToolWrapper/releases/download/${{ inputs.wrapper }}/DotnetToolWrapper.zip
+        unzip -o DotnetToolWrapper.zip -d DotnetToolWrapper
+        cp DotnetToolWrapper/net8.0/*.* pack/tools/net8.0/any
+        cp DotnetToolWrapper/net9.0/*.* pack/tools/net9.0/any
+        cp DotnetToolWrapper/net10.0/*.* pack/tools/net10.0/any
+
+    - name: Insert VSWhere
+      run: |
+        mkdir pack/win-x86
+        wget https://github.com/microsoft/vswhere/releases/download/${{ inputs.vswhere }}/vswhere.exe -O pack/win-x86/vswhere.exe
+
+    - name: Generate SBOM
+      run: >
+        dotnet sbom-tool generate
+        -b pack
+        -pn DemaConsulting.VSWhereTool
+        -pv ${{ inputs.version }}
+        -ps DemaConsulting
+        -nsb https://DemaConsulting.com/VSWhereTool
+        -li true
+        -pm true
+
+    - name: Enhance SBOM
+      shell: bash
+      run: |
+        dotnet spdx-tool run-workflow spdx-workflow.yaml vswhere-version=${{ inputs.vswhere }}
+
+    - name: Create Dotnet Tool
+      run: |
+        cd pack
+        dotnet pack DemaConsulting.VSWhereTool.csproj -p:Version=${{ inputs.version }} -o .
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v5
+      with:
+        name: build-artifacts
+        path: |
+          pack/*.nupkg
+          pack/_manifest/spdx_2.2/*.*
+    

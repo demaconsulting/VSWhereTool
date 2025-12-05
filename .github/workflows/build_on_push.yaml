@@ -4,33 +4,9 @@ on: [push]
 
 jobs:
   build:
-  
-    runs-on: ubuntu-22.04
-
-    steps:
-
-      - uses: actions/checkout@v4
-
-      - uses: nuget/setup-nuget@v2
-        with:
-          nuget-version: latest
-
-      - name: Insert Wrapper
-        run: |
-          wget https://github.com/demaconsulting/DotnetToolWrapper/releases/download/1.0.0/DotnetToolWrapper.zip
-          unzip -o DotnetToolWrapper.zip -d pack/tools/net6.0/any
-
-      - name: Insert VSWhere
-        run: |
-          wget https://github.com/microsoft/vswhere/releases/download/3.1.7/vswhere.exe -O pack/tools/net6.0/any/vswhere.exe
-
-      - name: Create Dotnet Tool
-        run: |
-          cd pack
-          nuget pack
-
-      - name: Upload asset
-        uses: actions/upload-artifact@v4
-        with:
-          name: VSWhereTool
-          path: pack/*.nupkg
+    name: Build Artifacts
+    uses: ./.github/workflows/build.yaml
+    with:
+      wrapper: "1.2.0"
+      vswhere: "3.1.7"
+      version: 0.0.0-run.${{ github.run_number }}

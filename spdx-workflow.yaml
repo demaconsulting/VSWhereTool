@@ -1,0 +1,124 @@
+# This workflow annotates the SBOM for the DemaConsulting.VSWhereTool with
+# build tools, and generates a summary markdown.
+
+
+# Workflow Parameters
+parameters:
+  spdx: pack/_manifest/spdx_2.2/manifest.spdx.json
+  md: pack/_manifest/spdx_2.2/sbom_summary.md
+  wrapper-spdx: manifest.spdx.json
+  vswhere-version: 0.0
+
+# Steps
+steps:
+
+  # Get the VSWhereTool version
+- command: get-version
+  displayName: Get VSWhereTool Version
+  inputs:
+    output: vswhere-version
+    spdx: ${{ spdx }}
+    name: DemaConsulting.VSWhereTool
+
+
+  # Rename the Root Package ID
+- command: rename-id
+  displayName: Rename VSWhereTool Package ID
+  inputs:
+    spdx: ${{ spdx }}
+    old: SPDXRef-RootPackage
+    new: SPDXRef-DemaConsulting-VSWhereTool-${{ vswhere-version }}
+
+
+  # Copy DotnetToolWrapper
+- command: copy-package
+  inputs:
+    from: ${{ wrapper-spdx }}
+    to: ${{ spdx }}
+    package: SPDXRef-DemaConsulting-DotnetToolWrapper
+    recursive: true
+    relationships:
+    - type: CONTAINED_BY
+      element: SPDXRef-DemaConsulting-VSWhereTool-${{ vswhere-version }}
+      comment: DotnetToolWrapper embedded into DemaConsulting.VSWhereTool 
+
+
+  # Add VSWhere Package
+- command: add-package
+  inputs:
+    spdx: ${{ spdx }}
+    package:
+      id: SPDXRef-Package-VSWhereTool-${{ vswhere-version }}
+      name: VSWhere
+      download: NOASSERTION
+      version: ${{ vswhere-version }}
+      filename: NOASSERTION
+      supplier: NOASSERTION
+      originator: NOASSERTION
+      homepage: https://github.com/microsoft/vswhere
+      copyright: "Copyright (C) Microsoft Corporation. All rights reserved."
+      summary: "Locate Visual Studio 2017 and newer installations."
+      license: MIT
+      purl: pkg:github/microsoft/vswhere@${{ vswhere-version }}
+    relationships:
+    - type: CONTAINED_BY
+      element: SPDXRef-DemaConsulting-VSWhereTool-${{ vswhere-version }}
+      comment: VSWhere ${{ vswhere-version }} embedded into DemaConsulting.VSWhereTool 
+
+
+  # Query for DotNet version
+- command: run-workflow
+  displayName: Query DotNet Version
+  inputs:
+    url: https://raw.githubusercontent.com/demaconsulting/SpdxWorkflows/main/GetDotNetVersion.yaml
+    outputs:
+      version: dotnet-version
+
+
+  # Add DotNet Package
+- command: run-workflow
+  displayName: Add DotNet Package
+  inputs:
+    url: https://raw.githubusercontent.com/demaconsulting/SpdxWorkflows/main/AddDotNetPackage.yaml
+    parameters:
+      spdx: ${{ spdx }}
+      version: ${{ dotnet-version }}
+      id: SPDXRef-Package-DotNet-${{ dotnet-version }}
+
+
+  # Add DotNet Relationship
+- command: add-relationship
+  displayName: Add DotNet Relationship
+  inputs:
+    spdx: ${{ spdx }}
+    id: SPDXRef-Package-DotNet-${{ dotnet-version }}
+    relationships:
+    - type: BUILD_TOOL_OF
+      element: SPDXRef-DemaConsulting-VSWhereTool-${{ vswhere-version }}
+      comment: DotNet ${{ dotnet-version }} used to package DemaConsulting.VSWhereTool
+
+
+  # Update the SBOM sha256
+- command: hash
+  displayName: Update VSWhereTool SBOM sha256
+  inputs:
+    operation: generate
+    algorithm: sha256
+    file: ${{ spdx }}
+
+
+  # Validate the SBOM
+- command: validate
+  displayName: Validate VSWhereTool SBOM
+  inputs:
+    spdx: ${{ spdx }}
+    ntia: true
+
+
+  # Generate the library summary
+- command: to-markdown
+  displayName: Generate VSWhereTool SBOM summary
+  inputs:
+    spdx: ${{ spdx }}
+    markdown: ${{ md }}
+    title: VSWhereTool
